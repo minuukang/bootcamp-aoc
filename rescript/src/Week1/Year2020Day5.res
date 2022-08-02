@@ -1,10 +1,10 @@
-let maxColumnNumber = 7.0
-let maxRowNumber = 127.0
+let maxColumnNumber = 7
+let maxRowNumber = 127
 let seatIdSpecificNumber = 8
 
 type minmax = {
-  min: float,
-  max: float,
+  min: int,
+  max: int,
 }
 
 type seat = {
@@ -13,15 +13,15 @@ type seat = {
   column: int
 }
 
-let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: float, ~max: float) => 
+let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: int, ~max: int) => 
   (seatRows: array<string>) => {
     let {min, max} = seatRows
       ->Js.Array2.reduce(
         (result, seatRow) => {
           if (seatRow == lowerSpec) {
-            { min: result.min, max: Js.Math.floor_float((result.max +. result.min) /. 2.0) }
+            { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
           } else if (seatRow == upperSpec) {
-            { min: Js.Math.ceil_float((result.max +. result.min) /. 2.0), max: result.max }
+            { min: Js.Math.ceil_int((result.max + result.min)->Belt.Int.toFloat /. 2.0), max: result.max }
           } else {
             Js.Exn.raiseError(`seat row can be '${lowerSpec}' or '${upperSpec}'`)
           }
@@ -31,11 +31,11 @@ let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: float, ~ma
     if min != max {
       Js.Exn.raiseError("min & max should be equal")
     }
-    min->Belt.Int.fromFloat
+    min
   }
 
-let parseRow = createSeatParser(~lowerSpec="F", ~upperSpec="B", ~min=0.0, ~max=maxRowNumber)
-let parseColumn = createSeatParser(~lowerSpec="L", ~upperSpec="R", ~min=0.0, ~max=maxColumnNumber)
+let parseRow = createSeatParser(~lowerSpec="F", ~upperSpec="B", ~min=0, ~max=maxRowNumber)
+let parseColumn = createSeatParser(~lowerSpec="L", ~upperSpec="R", ~min=0, ~max=maxColumnNumber)
 let getSeatId = (~row, ~column) => row * seatIdSpecificNumber + column
 
 let parseSeat = (seatStr: string) => {

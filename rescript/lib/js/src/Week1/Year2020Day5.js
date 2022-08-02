@@ -3,6 +3,7 @@
 
 var Fs = require("fs");
 var Js_exn = require("rescript/lib/js/js_exn.js");
+var Js_math = require("rescript/lib/js/js_math.js");
 var Process = require("process");
 var Caml_array = require("rescript/lib/js/caml_array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
@@ -14,11 +15,11 @@ function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
           if (seatRow === lowerSpec) {
             return {
                     min: result.min,
-                    max: Math.floor((result.max + result.min) / 2.0)
+                    max: Js_math.floor_int((result.max + result.min | 0) / 2.0)
                   };
           } else if (seatRow === upperSpec) {
             return {
-                    min: Math.ceil((result.max + result.min) / 2.0),
+                    min: Js_math.ceil_int((result.max + result.min | 0) / 2.0),
                     max: result.max
                   };
           } else {
@@ -32,15 +33,15 @@ function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
   if (min$1 !== match.max) {
     Js_exn.raiseError("min & max should be equal");
   }
-  return min$1 | 0;
+  return min$1;
 }
 
 function parseRow(param) {
-  return createSeatParser("F", "B", 0.0, 127.0, param);
+  return createSeatParser("F", "B", 0, 127, param);
 }
 
 function parseColumn(param) {
-  return createSeatParser("L", "R", 0.0, 7.0, param);
+  return createSeatParser("L", "R", 0, 7, param);
 }
 
 function getSeatId(row, column) {
@@ -78,9 +79,9 @@ console.log({
       stepTwoAnswer: stepTwoAnswer
     });
 
-var maxColumnNumber = 7.0;
+var maxColumnNumber = 7;
 
-var maxRowNumber = 127.0;
+var maxRowNumber = 127;
 
 var seatIdSpecificNumber = 8;
 
