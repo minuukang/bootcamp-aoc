@@ -3,17 +3,17 @@ let tree = "#"
 let countTreeByDirection = (
   ~map: array<array<string>>, ~x: int, ~y: int
 ) => {
-  let yPositions = Belt.Array.rangeBy(y, map->Js.Array2.length - 1, ~step=y)
+  let yPositions = Belt.Array.rangeBy(y, map->Belt.Array.length - 1, ~step=y)
   let positions = Belt.Array.zip(
     Belt.Array.makeBy(
-      yPositions->Js.Array2.length,
-      i => mod((i + 1) * x, map[0]->Js.Array2.length)
+      yPositions->Belt.Array.length,
+      i => mod((i + 1) * x, map[0]->Belt.Array.length)
     ),
     yPositions
   )
   let treeCount = positions
-    ->Js.Array2.map(((x, y)) => map[y][x] == tree ? 1 : 0)
-    ->Js.Array2.reduce((result, num) => result + num, 0)
+    ->Belt.Array.map(((x, y)) => map[y][x] == tree ? 1 : 0)
+    ->Belt.Array.reduce(0, (result, num) => result + num)
   treeCount
 }
 
@@ -22,7 +22,7 @@ let input = Node.Fs.readFileAsUtf8Sync(Node.Process.cwd() ++ "/rescript/input/We
 let map = input
     ->Js.String2.trim
     ->Js.String2.split("\n")
-    ->Js.Array2.map(line => line->Js.String2.split(""))
+    ->Belt.Array.map(line => line->Js.String2.split(""))
 
 let stepOneAnswer = countTreeByDirection(
   ~map,
@@ -39,10 +39,10 @@ let stepTwoDirections: array<direction> = [
   { x: 1, y: 2 }
 ]
 let stepTwoAnswer = stepTwoDirections
-  ->Js.Array2.map(({ x, y }) => countTreeByDirection(~map, ~x, ~y)->Belt.Int.toFloat)
-  ->Js.Array2.reduce(
+  ->Belt.Array.map(({ x, y }) => countTreeByDirection(~map, ~x, ~y)->Belt.Int.toFloat)
+  ->Belt.Array.reduce(
+    1.0,
     (result, count) => result *. count,
-    1.0
   )
 
 Js.log({

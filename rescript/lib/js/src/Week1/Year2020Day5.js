@@ -5,13 +5,17 @@ var Fs = require("fs");
 var Js_exn = require("rescript/lib/js/js_exn.js");
 var Js_math = require("rescript/lib/js/js_math.js");
 var Process = require("process");
+var Belt_List = require("rescript/lib/js/belt_List.js");
+var Belt_Array = require("rescript/lib/js/belt_Array.js");
 var Caml_array = require("rescript/lib/js/caml_array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
-var Caml_option = require("rescript/lib/js/caml_option.js");
 var Caml_splice_call = require("rescript/lib/js/caml_splice_call.js");
 
 function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
-  var match = seatRows.reduce((function (result, seatRow) {
+  var match = Belt_Array.reduce(seatRows, {
+        min: min,
+        max: max
+      }, (function (result, seatRow) {
           if (seatRow === lowerSpec) {
             return {
                     min: result.min,
@@ -25,10 +29,7 @@ function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
           } else {
             return Js_exn.raiseError("seat row can be '" + lowerSpec + "' or '" + upperSpec + "'");
           }
-        }), {
-        min: min,
-        max: max
-      });
+        }));
   var min$1 = match.min;
   if (min$1 !== match.max) {
     Js_exn.raiseError("min & max should be equal");
@@ -60,17 +61,19 @@ function parseSeat(seatStr) {
 
 var input = Fs.readFileSync(Process.cwd() + "/rescript/input/Week1/Year2020Day5.input.txt", "utf8");
 
-var inputSeats = input.split("\n").map(parseSeat);
+var inputSeats = Belt_Array.map(input.split("\n"), parseSeat);
 
-var inputSeatIds = inputSeats.map(function (seat) {
-        return seat.id;
-      }).sort();
+var inputSeatIds = Belt_List.toArray(Belt_List.sort(Belt_List.fromArray(Belt_Array.map(inputSeats, (function (seat) {
+                    return seat.id;
+                  }))), (function (a, b) {
+            return a - b | 0;
+          })));
 
 var stepOneAnswer = Caml_splice_call.spliceApply(Math.max, [inputSeatIds]);
 
-var stepTwoAnswer = Belt_Option.flatMap(Caml_option.undefined_to_opt(inputSeatIds.find(function (id, index) {
-              return Caml_array.get(inputSeatIds, index + 1 | 0) === (id + 2 | 0);
-            })), (function (value) {
+var stepTwoAnswer = Belt_Option.flatMap(Belt_Array.get(Belt_Array.keepWithIndex(inputSeatIds, (function (id, index) {
+                return Caml_array.get(inputSeatIds, index + 1 | 0) === (id + 2 | 0);
+              })), 0), (function (value) {
         return value + 1 | 0;
       }));
 

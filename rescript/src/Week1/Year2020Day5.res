@@ -16,7 +16,8 @@ type seat = {
 let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: int, ~max: int) => 
   (seatRows: array<string>) => {
     let {min, max} = seatRows
-      ->Js.Array2.reduce(
+      ->Belt.Array.reduce(
+        { min, max },
         (result, seatRow) => {
           if (seatRow == lowerSpec) {
             { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
@@ -25,8 +26,7 @@ let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: int, ~max:
           } else {
             Js.Exn.raiseError(`seat row can be '${lowerSpec}' or '${upperSpec}'`)
           }
-        },
-        { min, max }
+        }
       )
     if min != max {
       Js.Exn.raiseError("min & max should be equal")
@@ -54,15 +54,18 @@ let input = Node.Fs.readFileAsUtf8Sync(Node.Process.cwd() ++ "/rescript/input/We
 
 let inputSeats = input
   ->Js.String2.split("\n")
-  ->Js.Array2.map(parseSeat)
+  ->Belt.Array.map(parseSeat)
 
 let inputSeatIds = inputSeats
-  ->Js.Array2.map(seat => seat.id)
-  ->Js.Array2.sortInPlace
+  ->Belt.Array.map(seat => seat.id)
+  ->Belt.List.fromArray
+  ->Belt.List.sort((a, b) => a - b)
+  ->Belt.List.toArray
 
 let stepOneAnswer = inputSeatIds->Js.Math.maxMany_int
 let stepTwoAnswer = inputSeatIds
-  ->Js.Array2.findi((id, index) => inputSeatIds[index + 1] == id + 2)
+  ->Belt.Array.keepWithIndex((id, index) => inputSeatIds[index + 1] == id + 2)
+  ->Belt.Array.get(0)
   ->Belt.Option.flatMap(value => Some(value + 1))
 
 Js.log({
