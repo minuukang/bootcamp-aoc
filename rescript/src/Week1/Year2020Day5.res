@@ -13,18 +13,28 @@ type seat = {
   column: int
 }
 
-let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: int, ~max: int) => 
-  (seatRows: array<string>) => {
+type seatDirection = Lower | Upper
+type seatSpec = Column(seatDirection) | Row(seatDirection)
+
+let parseSpec = char => {
+  switch char {
+    | "F" => Some(Row(Lower))
+    | "B" => Some(Row(Upper))
+    | "L" => Some(Column(Lower))
+    | "R" => Some(Column(Upper))
+    | _ => None
+  }
+}
+
+let createSeatParser = (~min: int, ~max: int) => 
+  (seatRows: array<seatDirection>) => {
     let {min, max} = seatRows
       ->Belt.Array.reduce(
         { min, max },
         (result, seatRow) => {
-          if (seatRow == lowerSpec) {
-            { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
-          } else if (seatRow == upperSpec) {
-            { min: Js.Math.ceil_int((result.max + result.min)->Belt.Int.toFloat /. 2.0), max: result.max }
-          } else {
-            Js.Exn.raiseError(`seat row can be '${lowerSpec}' or '${upperSpec}'`)
+          switch (seatRow) {
+            | Lower => { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
+            | Upper => { min: Js.Math.ceil_int((result.max + result.min)->Belt.Int.toFloat /. 2.0), max: result.max }
           }
         }
       )
@@ -34,13 +44,22 @@ let createSeatParser = (~lowerSpec: string, ~upperSpec: string, ~min: int, ~max:
     min
   }
 
-let parseRow = createSeatParser(~lowerSpec="F", ~upperSpec="B", ~min=0, ~max=maxRowNumber)
-let parseColumn = createSeatParser(~lowerSpec="L", ~upperSpec="R", ~min=0, ~max=maxColumnNumber)
+let parseRow = createSeatParser(~min=0, ~max=maxRowNumber)
+let parseColumn = createSeatParser(~min=0, ~max=maxColumnNumber)
 let getSeatId = (~row, ~column) => row * seatIdSpecificNumber + column
 
 let parseSeat = (seatStr: string) => {
-  let row = parseRow(seatStr->Js.String2.substring(~from=0, ~to_=7)->Js.String2.split(""))
-  let column = parseColumn(seatStr->Js.String2.substr(~from=-3)->Js.String2.split(""))
+  let seatSpecs = seatStr
+    ->Js.String2.split("")
+    ->Belt.Array.keepMap(parseSpec)
+  let row = parseRow(seatSpecs->Belt.Array.keepMap(seat => switch seat {
+    | Row(direction) => Some(direction)
+    | _ => None
+  }))
+  let column = parseColumn(seatSpecs->Belt.Array.keepMap(seat => switch seat {
+    | Column(direction) => Some(direction)
+    | _ => None
+  }))
   {
     id: getSeatId(~row, ~column),
     row,
@@ -64,7 +83,11 @@ let inputSeatIds = inputSeats
 
 let stepOneAnswer = inputSeatIds->Js.Math.maxMany_int
 let stepTwoAnswer = inputSeatIds
-  ->Belt.Array.keepWithIndex((id, index) => inputSeatIds[index + 1] == id + 2)
+  ->Belt.Array.keepWithIndex((id, index) => {
+    inputSeatIds
+      ->Belt.Array.get(index + 1)
+      ->Belt.Option.mapWithDefault(false, value => value == id + 2)
+  })
   ->Belt.Array.get(0)
   ->Belt.Option.flatMap(value => Some(value + 1))
 

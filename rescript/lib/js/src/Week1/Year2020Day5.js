@@ -7,27 +7,51 @@ var Js_math = require("rescript/lib/js/js_math.js");
 var Process = require("process");
 var Belt_List = require("rescript/lib/js/belt_List.js");
 var Belt_Array = require("rescript/lib/js/belt_Array.js");
-var Caml_array = require("rescript/lib/js/caml_array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
 var Caml_splice_call = require("rescript/lib/js/caml_splice_call.js");
 
-function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
+function parseSpec($$char) {
+  switch ($$char) {
+    case "B" :
+        return {
+                TAG: /* Row */1,
+                _0: /* Upper */1
+              };
+    case "F" :
+        return {
+                TAG: /* Row */1,
+                _0: /* Lower */0
+              };
+    case "L" :
+        return {
+                TAG: /* Column */0,
+                _0: /* Lower */0
+              };
+    case "R" :
+        return {
+                TAG: /* Column */0,
+                _0: /* Upper */1
+              };
+    default:
+      return ;
+  }
+}
+
+function createSeatParser(min, max, seatRows) {
   var match = Belt_Array.reduce(seatRows, {
         min: min,
         max: max
       }, (function (result, seatRow) {
-          if (seatRow === lowerSpec) {
-            return {
-                    min: result.min,
-                    max: Js_math.floor_int((result.max + result.min | 0) / 2.0)
-                  };
-          } else if (seatRow === upperSpec) {
+          if (seatRow) {
             return {
                     min: Js_math.ceil_int((result.max + result.min | 0) / 2.0),
                     max: result.max
                   };
           } else {
-            return Js_exn.raiseError("seat row can be '" + lowerSpec + "' or '" + upperSpec + "'");
+            return {
+                    min: result.min,
+                    max: Js_math.floor_int((result.max + result.min | 0) / 2.0)
+                  };
           }
         }));
   var min$1 = match.min;
@@ -38,11 +62,11 @@ function createSeatParser(lowerSpec, upperSpec, min, max, seatRows) {
 }
 
 function parseRow(param) {
-  return createSeatParser("F", "B", 0, 127, param);
+  return createSeatParser(0, 127, param);
 }
 
 function parseColumn(param) {
-  return createSeatParser("L", "R", 0, 7, param);
+  return createSeatParser(0, 7, param);
 }
 
 function getSeatId(row, column) {
@@ -50,8 +74,20 @@ function getSeatId(row, column) {
 }
 
 function parseSeat(seatStr) {
-  var row = parseRow(seatStr.substring(0, 7).split(""));
-  var column = parseColumn(seatStr.substr(-3).split(""));
+  var seatSpecs = Belt_Array.keepMap(seatStr.split(""), parseSpec);
+  var row = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (seat) {
+              if (seat.TAG === /* Column */0) {
+                return ;
+              } else {
+                return seat._0;
+              }
+            })));
+  var column = createSeatParser(0, 7, Belt_Array.keepMap(seatSpecs, (function (seat) {
+              if (seat.TAG === /* Column */0) {
+                return seat._0;
+              }
+              
+            })));
   return {
           id: getSeatId(row, column),
           row: row,
@@ -72,7 +108,9 @@ var inputSeatIds = Belt_List.toArray(Belt_List.sort(Belt_List.fromArray(Belt_Arr
 var stepOneAnswer = Caml_splice_call.spliceApply(Math.max, [inputSeatIds]);
 
 var stepTwoAnswer = Belt_Option.flatMap(Belt_Array.get(Belt_Array.keepWithIndex(inputSeatIds, (function (id, index) {
-                return Caml_array.get(inputSeatIds, index + 1 | 0) === (id + 2 | 0);
+                return Belt_Option.mapWithDefault(Belt_Array.get(inputSeatIds, index + 1 | 0), false, (function (value) {
+                              return value === (id + 2 | 0);
+                            }));
               })), 0), (function (value) {
         return value + 1 | 0;
       }));
@@ -91,6 +129,7 @@ var seatIdSpecificNumber = 8;
 exports.maxColumnNumber = maxColumnNumber;
 exports.maxRowNumber = maxRowNumber;
 exports.seatIdSpecificNumber = seatIdSpecificNumber;
+exports.parseSpec = parseSpec;
 exports.createSeatParser = createSeatParser;
 exports.parseRow = parseRow;
 exports.parseColumn = parseColumn;
