@@ -1,19 +1,11 @@
 type passwordRule = {
-  min: option<int>,
-  max: option<int>,
-  required: option<string>,
-  password: option<string>,
-}
-
-type passwordSafeRule = {
   min: int,
   max: int,
   required: string,
   password: string
 }
 
-let parsePasswordRule = (str): passwordRule => {
-  // [range, required, password]
+let parsePasswordRule = (str) => {
   let parts = str->Js.String2.split(" ")
   let rangeInt = parts
     ->Belt.Array.get(0)
@@ -30,41 +22,21 @@ let parsePasswordRule = (str): passwordRule => {
         ->Belt.Array.get(0)
     })
   let password = parts->Belt.Array.get(2)
-  {
-    min: rangeInt->Belt.Array.getUnsafe(0),
-    max: rangeInt->Belt.Array.getUnsafe(1),
-    required,
-    password,
+  let min = rangeInt->Belt.Array.get(0)
+  let max = rangeInt->Belt.Array.get(1)
+  switch (min, max, required, password) {
+    | (Some(Some(min)), Some(Some(max)), Some(required), Some(password)) => Belt.Result.Ok({
+      min,
+      max,
+      required,
+      password
+    })
+    | _ => Belt.Result.Error("Invalid password rule") 
   }
 }
 
-let getSafePasswordRule = (rule: passwordRule): passwordSafeRule => {
-  let min = switch rule.min {
-    | Some(m) => m
-    | None => Js.Exn.raiseTypeError("min cannot be optional")
-  }
-  let max = switch rule.max {
-    | Some(m) => m
-    | None => Js.Exn.raiseTypeError("max cannot be optional")
-  }
-  let required = switch rule.required {
-    | Some(m) => m
-    | None => Js.Exn.raiseTypeError("required cannot be optional")
-  }
-  let password = switch rule.password {
-    | Some(m) => m
-    | None => Js.Exn.raiseTypeError("required cannot be optional")
-  }
-  {
-    min,
-    max,
-    required,
-    password
-  }
-}
-
-let validatePasswordOldRule = (rule: passwordRule) => {
-  let { password, min, max, required } = rule->getSafePasswordRule
+let validatePasswordOldRule = (rule) => {
+  let { password, min, max, required } = rule
   let sizeOfRequired = password
     ->Js.String2.split("")
     ->Belt.Array.keep(char => char == required)
@@ -72,8 +44,8 @@ let validatePasswordOldRule = (rule: passwordRule) => {
   sizeOfRequired >= min && sizeOfRequired <= max
 }
 
-let validatePasswordNewRule = (rule: passwordRule) => {
-  let { password, min, max, required } = rule->getSafePasswordRule
+let validatePasswordNewRule = (rule) => {
+  let { password, min, max, required } = rule
   let matchMinRequired = password->Js.String2.charAt(min - 1) === required
   let matchMaxRequired = password->Js.String2.charAt(max - 1) === required
   let validate = (matchMinRequired || matchMaxRequired) && !(matchMinRequired && matchMaxRequired)
@@ -85,6 +57,12 @@ let input = Node.Fs.readFileAsUtf8Sync(Node.Process.cwd() ++ "/rescript/input/We
 let passwordRules = input
   ->Js.String2.split("\n")
   ->Belt.Array.map(parsePasswordRule)
+  ->Belt.Array.keepMap(result => {
+    switch result {
+      | Belt.Result.Ok(rule) => Some(rule)
+      | _ => None
+    }
+  })
 
 let stepOneAnswer = passwordRules
   ->Belt.Array.keep(validatePasswordOldRule)

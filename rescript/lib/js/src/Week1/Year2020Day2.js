@@ -2,11 +2,11 @@
 'use strict';
 
 var Fs = require("fs");
-var Js_exn = require("rescript/lib/js/js_exn.js");
 var Process = require("process");
 var Belt_Int = require("rescript/lib/js/belt_Int.js");
 var Belt_Array = require("rescript/lib/js/belt_Array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
+var Caml_option = require("rescript/lib/js/caml_option.js");
 
 function parsePasswordRule(str) {
   var parts = str.split(" ");
@@ -17,50 +17,63 @@ function parsePasswordRule(str) {
           return Belt_Array.get(rule.split(":"), 0);
         }));
   var password = Belt_Array.get(parts, 2);
-  return {
-          min: rangeInt[0],
-          max: rangeInt[1],
-          required: required,
-          password: password
-        };
-}
-
-function getSafePasswordRule(rule) {
-  var m = rule.min;
-  var min = m !== undefined ? m : Js_exn.raiseTypeError("min cannot be optional");
-  var m$1 = rule.max;
-  var max = m$1 !== undefined ? m$1 : Js_exn.raiseTypeError("max cannot be optional");
-  var m$2 = rule.required;
-  var required = m$2 !== undefined ? m$2 : Js_exn.raiseTypeError("required cannot be optional");
-  var m$3 = rule.password;
-  var password = m$3 !== undefined ? m$3 : Js_exn.raiseTypeError("required cannot be optional");
-  return {
-          min: min,
-          max: max,
-          required: required,
-          password: password
-        };
+  var min = Belt_Array.get(rangeInt, 0);
+  var max = Belt_Array.get(rangeInt, 1);
+  if (min === undefined) {
+    return {
+            TAG: /* Error */1,
+            _0: "Invalid password rule"
+          };
+  }
+  var min$1 = Caml_option.valFromOption(min);
+  if (min$1 === undefined) {
+    return {
+            TAG: /* Error */1,
+            _0: "Invalid password rule"
+          };
+  }
+  if (max === undefined) {
+    return {
+            TAG: /* Error */1,
+            _0: "Invalid password rule"
+          };
+  }
+  var max$1 = Caml_option.valFromOption(max);
+  if (max$1 !== undefined && required !== undefined && password !== undefined) {
+    return {
+            TAG: /* Ok */0,
+            _0: {
+              min: min$1,
+              max: max$1,
+              required: required,
+              password: password
+            }
+          };
+  } else {
+    return {
+            TAG: /* Error */1,
+            _0: "Invalid password rule"
+          };
+  }
 }
 
 function validatePasswordOldRule(rule) {
-  var match = getSafePasswordRule(rule);
-  var required = match.required;
-  var sizeOfRequired = Belt_Array.keep(match.password.split(""), (function ($$char) {
+  var required = rule.required;
+  var sizeOfRequired = Belt_Array.keep(rule.password.split(""), (function ($$char) {
           return $$char === required;
         })).length;
-  if (sizeOfRequired >= match.min) {
-    return sizeOfRequired <= match.max;
+  if (sizeOfRequired >= rule.min) {
+    return sizeOfRequired <= rule.max;
   } else {
     return false;
   }
 }
 
 function validatePasswordNewRule(rule) {
-  var match = getSafePasswordRule(rule);
-  var password = match.password;
-  var required = match.required;
-  var matchMinRequired = password.charAt(match.min - 1 | 0) === required;
-  var matchMaxRequired = password.charAt(match.max - 1 | 0) === required;
+  var password = rule.password;
+  var required = rule.required;
+  var matchMinRequired = password.charAt(rule.min - 1 | 0) === required;
+  var matchMaxRequired = password.charAt(rule.max - 1 | 0) === required;
   if (matchMinRequired || matchMaxRequired) {
     return !(matchMinRequired && matchMaxRequired);
   } else {
@@ -70,7 +83,12 @@ function validatePasswordNewRule(rule) {
 
 var input = Fs.readFileSync(Process.cwd() + "/rescript/input/Week1/Year2020Day2.input.txt", "utf8");
 
-var passwordRules = Belt_Array.map(input.split("\n"), parsePasswordRule);
+var passwordRules = Belt_Array.keepMap(Belt_Array.map(input.split("\n"), parsePasswordRule), (function (result) {
+        if (result.TAG === /* Ok */0) {
+          return result._0;
+        }
+        
+      }));
 
 var stepOneAnswer = Belt_Array.keep(passwordRules, validatePasswordOldRule).length;
 
@@ -82,7 +100,6 @@ console.log({
     });
 
 exports.parsePasswordRule = parsePasswordRule;
-exports.getSafePasswordRule = getSafePasswordRule;
 exports.validatePasswordOldRule = validatePasswordOldRule;
 exports.validatePasswordNewRule = validatePasswordNewRule;
 exports.input = input;
