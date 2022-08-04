@@ -10,31 +10,28 @@ var Belt_Array = require("rescript/lib/js/belt_Array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
 var Caml_splice_call = require("rescript/lib/js/caml_splice_call.js");
 
-function parseSpec($$char) {
-  switch ($$char) {
-    case "B" :
-        return {
-                TAG: /* Row */1,
-                _0: /* Upper */1
-              };
-    case "F" :
-        return {
-                TAG: /* Row */1,
-                _0: /* Lower */0
-              };
-    case "L" :
-        return {
-                TAG: /* Column */0,
-                _0: /* Lower */0
-              };
-    case "R" :
-        return {
-                TAG: /* Column */0,
-                _0: /* Upper */1
-              };
-    default:
-      return ;
-  }
+var _map = {"lower":"F","upper":"B","lower":"L","upper":"R"};
+
+var _revMap = {"F":"lower","B":"upper","L":"lower","R":"upper"};
+
+function seatDirectionMapToJs(param) {
+  return _map[param];
+}
+
+function seatDirectionMapFromJs(param) {
+  return _revMap[param];
+}
+
+var _map$1 = {"row":"F","row":"B","column":"L","column":"R"};
+
+var _revMap$1 = {"F":"row","B":"row","L":"column","R":"column"};
+
+function seatTypeMapToJs(param) {
+  return _map$1[param];
+}
+
+function seatTypeMapFromJs(param) {
+  return _revMap$1[param];
 }
 
 function createSeatParser(min, max, seatRows) {
@@ -42,7 +39,7 @@ function createSeatParser(min, max, seatRows) {
         min: min,
         max: max
       }, (function (result, seatRow) {
-          if (seatRow) {
+          if (seatRow === "upper") {
             return {
                     min: Js_math.ceil_int((result.max + result.min | 0) / 2.0),
                     max: result.max
@@ -74,17 +71,18 @@ function getSeatId(row, column) {
 }
 
 function parseSeat(seatStr) {
-  var seatSpecs = Belt_Array.keepMap(seatStr.split(""), parseSpec);
-  var row = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (seat) {
-              if (seat.TAG === /* Column */0) {
-                return ;
-              } else {
-                return seat._0;
+  var seatSpecs = seatStr.split("");
+  var row = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (spec) {
+              var t = seatTypeMapFromJs(spec);
+              if (t === "row") {
+                return seatDirectionMapFromJs(spec);
               }
+              
             })));
-  var column = createSeatParser(0, 7, Belt_Array.keepMap(seatSpecs, (function (seat) {
-              if (seat.TAG === /* Column */0) {
-                return seat._0;
+  var column = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (spec) {
+              var t = seatTypeMapFromJs(spec);
+              if (t === "column") {
+                return seatDirectionMapFromJs(spec);
               }
               
             })));
@@ -129,7 +127,10 @@ var seatIdSpecificNumber = 8;
 exports.maxColumnNumber = maxColumnNumber;
 exports.maxRowNumber = maxRowNumber;
 exports.seatIdSpecificNumber = seatIdSpecificNumber;
-exports.parseSpec = parseSpec;
+exports.seatDirectionMapToJs = seatDirectionMapToJs;
+exports.seatDirectionMapFromJs = seatDirectionMapFromJs;
+exports.seatTypeMapToJs = seatTypeMapToJs;
+exports.seatTypeMapFromJs = seatTypeMapFromJs;
 exports.createSeatParser = createSeatParser;
 exports.parseRow = parseRow;
 exports.parseColumn = parseColumn;

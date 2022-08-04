@@ -13,28 +13,32 @@ type seat = {
   column: int
 }
 
-type seatDirection = Lower | Upper
-type seatSpec = Column(seatDirection) | Row(seatDirection)
+@deriving(jsConverter)
+type seatDirectionMap = [
+  | @as("F") #lower
+  | @as("B") #upper
+  | @as("L") #lower
+  | @as("R") #upper
+]
 
-let parseSpec = char => {
-  switch char {
-    | "F" => Some(Row(Lower))
-    | "B" => Some(Row(Upper))
-    | "L" => Some(Column(Lower))
-    | "R" => Some(Column(Upper))
-    | _ => None
-  }
-}
+@deriving(jsConverter)
+type seatTypeMap = [
+  | @as("F") #row
+  | @as("B") #row
+  | @as("L") #column
+  | @as("R") #column
+]
+
 
 let createSeatParser = (~min: int, ~max: int) => 
-  (seatRows: array<seatDirection>) => {
+  (seatRows: array<seatDirectionMap>) => {
     let {min, max} = seatRows
       ->Belt.Array.reduce(
         { min, max },
         (result, seatRow) => {
           switch (seatRow) {
-            | Lower => { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
-            | Upper => { min: Js.Math.ceil_int((result.max + result.min)->Belt.Int.toFloat /. 2.0), max: result.max }
+            | #lower => { min: result.min, max: Js.Math.floor_int((result.max + result.min)->Belt.Int.toFloat /. 2.0) }
+            | #upper => { min: Js.Math.ceil_int((result.max + result.min)->Belt.Int.toFloat /. 2.0), max: result.max }
           }
         }
       )
@@ -49,17 +53,25 @@ let parseColumn = createSeatParser(~min=0, ~max=maxColumnNumber)
 let getSeatId = (~row, ~column) => row * seatIdSpecificNumber + column
 
 let parseSeat = (seatStr: string) => {
-  let seatSpecs = seatStr
-    ->Js.String2.split("")
-    ->Belt.Array.keepMap(parseSpec)
-  let row = parseRow(seatSpecs->Belt.Array.keepMap(seat => switch seat {
-    | Row(direction) => Some(direction)
-    | _ => None
-  }))
-  let column = parseColumn(seatSpecs->Belt.Array.keepMap(seat => switch seat {
-    | Column(direction) => Some(direction)
-    | _ => None
-  }))
+  let seatSpecs = seatStr->Js.String2.split("")
+  let row = seatSpecs
+    ->Belt.Array.keepMap(spec => switch spec->seatTypeMapFromJs {
+      | Some(t) => switch (t) {
+        | #row => spec->seatDirectionMapFromJs
+        | _ => None
+      }
+      | _ => None
+    })
+    ->parseRow
+  let column = seatSpecs
+    ->Belt.Array.keepMap(spec => switch spec->seatTypeMapFromJs {
+      | Some(t) => switch (t) {
+        | #column => spec->seatDirectionMapFromJs
+        | _ => None
+      }
+      | _ => None
+    })
+    ->parseRow
   {
     id: getSeatId(~row, ~column),
     row,
