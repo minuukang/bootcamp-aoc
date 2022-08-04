@@ -15,7 +15,22 @@ type passport = {
   cid: option<string>,
 }
 
-let eyecolors = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
+@deriving(jsConverter)
+type eyecolors = [
+  | #amb
+  | #blu
+  | #brn
+  | #gry
+  | #grn
+  | #hzl
+  | #oth
+]
+
+@deriving(jsConverter)
+type heightUnit = [
+  | #cm
+  | @as("in") #inch
+]
 
 let passportRules = [
   // validate birth
@@ -41,23 +56,18 @@ let passportRules = [
   },
   // validate height
   (passport) => {
-    let value = passport.hgt
-      ->Js.String2.substring(
-        ~from=0,
-        ~to_=passport.hgt->Js.String2.length - 2
-      )
-      ->Belt.Int.fromString
-    let suffix = passport.hgt->Js.String2.substr(~from=-2)
-    switch suffix {
-      | "cm" => {
-        switch value {
-          | Some(cm) => cm >= 150 && cm <= 193
-          | _ => false
-        }
-      }
-      | "in" => {
-        switch value {
-          | Some(inch) => inch >= 59 && inch <= 76
+    switch passport.hgt->Js.String2.match_(%re("/^([0-9]+)(.*?)$/")) {
+      | Some([_, valueStr, unit]) => {
+        switch (
+          valueStr->Belt.Int.fromString,
+          unit->heightUnitFromJs
+        ) {
+          | (Some(value), Some(#cm)) => {
+            value >= 150 && value <= 193
+          }
+          | (Some(value), Some(#inch)) => {
+            value >= 59 && value <= 76
+          }
           | _ => false
         }
       }
@@ -70,8 +80,7 @@ let passportRules = [
   },
   // validate ecl
   (passport) => {
-    eyecolors
-      ->Belt.Array.some(color => passport.ecl == color)
+    passport.ecl->eyecolorsFromJs != None
   },
   // validate pid
   (passport) => {

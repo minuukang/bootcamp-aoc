@@ -10,15 +10,27 @@ var Belt_Option = require("rescript/lib/js/belt_Option.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var Belt_MapString = require("rescript/lib/js/belt_MapString.js");
 
-var eyecolors = [
-  "amb",
-  "blu",
-  "brn",
-  "gry",
-  "grn",
-  "hzl",
-  "oth"
-];
+var _map = {"amb":"amb","blu":"blu","brn":"brn","gry":"gry","grn":"grn","hzl":"hzl","oth":"oth"};
+
+function eyecolorsToJs(param) {
+  return param;
+}
+
+function eyecolorsFromJs(param) {
+  return _map[param];
+}
+
+var _map$1 = {"cm":"cm","inch":"in"};
+
+var _revMap = {"cm":"cm","in":"inch"};
+
+function heightUnitToJs(param) {
+  return _map$1[param];
+}
+
+function heightUnitFromJs(param) {
+  return _revMap[param];
+}
 
 var passportRules = [
   (function (passport) {
@@ -46,32 +58,38 @@ var passportRules = [
       }
     }),
   (function (passport) {
-      var value = Belt_Int.fromString(passport.hgt.substring(0, passport.hgt.length - 2 | 0));
-      var suffix = passport.hgt.substr(-2);
-      switch (suffix) {
-        case "cm" :
-            if (value !== undefined && value >= 150) {
-              return value <= 193;
-            } else {
-              return false;
-            }
-        case "in" :
-            if (value !== undefined && value >= 59) {
-              return value <= 76;
-            } else {
-              return false;
-            }
-        default:
+      var match = passport.hgt.match(/^([0-9]+)(.*?)$/);
+      if (match === null) {
+        return false;
+      }
+      if (match.length !== 3) {
+        return false;
+      }
+      var valueStr = match[1];
+      var unit = match[2];
+      var match$1 = Belt_Int.fromString(valueStr);
+      var match$2 = heightUnitFromJs(unit);
+      if (match$1 !== undefined && match$2 !== undefined) {
+        if (match$2 === "cm") {
+          if (match$1 >= 150) {
+            return match$1 <= 193;
+          } else {
+            return false;
+          }
+        } else if (match$1 >= 59) {
+          return match$1 <= 76;
+        } else {
           return false;
+        }
+      } else {
+        return false;
       }
     }),
   (function (passport) {
       return /^#[0-9a-f]{6}$/.test(passport.hcl);
     }),
   (function (passport) {
-      return Belt_Array.some(eyecolors, (function (color) {
-                    return passport.ecl === color;
-                  }));
+      return eyecolorsFromJs(passport.ecl) !== undefined;
     }),
   (function (passport) {
       return /^[0-9]{9}$/.test(passport.pid);
@@ -153,7 +171,10 @@ console.log({
       stepTwoAnswer: stepTwoAnswer
     });
 
-exports.eyecolors = eyecolors;
+exports.eyecolorsToJs = eyecolorsToJs;
+exports.eyecolorsFromJs = eyecolorsFromJs;
+exports.heightUnitToJs = heightUnitToJs;
+exports.heightUnitFromJs = heightUnitFromJs;
 exports.passportRules = passportRules;
 exports.parsePassport = parsePassport;
 exports.validatePassport = validatePassport;
