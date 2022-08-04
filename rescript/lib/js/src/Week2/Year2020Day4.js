@@ -2,6 +2,7 @@
 'use strict';
 
 var Fs = require("fs");
+var Curry = require("rescript/lib/js/curry.js");
 var Process = require("process");
 var Belt_Int = require("rescript/lib/js/belt_Int.js");
 var Belt_Array = require("rescript/lib/js/belt_Array.js");
@@ -126,7 +127,7 @@ function validatePassport(passportResult) {
   }
   var passport = passportResult._0;
   return Belt_Array.every(passportRules, (function (rule) {
-                return rule(passport);
+                return Curry._1(rule, passport);
               }));
 }
 

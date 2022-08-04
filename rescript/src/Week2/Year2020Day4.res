@@ -17,30 +17,30 @@ type passport = {
 
 let eyecolors = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
 
-let passportRules: array<(.passport) => bool> = [
+let passportRules = [
   // validate birth
-  (.passport) => {
+  (passport) => {
     switch passport.byr->Belt.Int.fromString {
       | Some(birth) => birth >= 1920 && birth <= 2002
       | _ => false
     }
   },
   // validate iyr
-  (.passport) => {
+  (passport) => {
     switch passport.iyr->Belt.Int.fromString {
       | Some(iyr) => iyr >= 2010 && iyr <= 2020
       | _ => false
     }
   },
   // validate eyr
-  (.passport) => {
+  (passport) => {
     switch passport.eyr->Belt.Int.fromString {
       | Some(eyr) => eyr >= 2020 && eyr <= 2030
       | _ => false
     }
   },
   // validate height
-  (.passport) => {
+  (passport) => {
     let value = passport.hgt
       ->Js.String2.substring(
         ~from=0,
@@ -65,16 +65,16 @@ let passportRules: array<(.passport) => bool> = [
     }
   },
   // validate hcl
-  (.passport) => {
+  (passport) => {
     %re("/^#[0-9a-f]{6}$/")->Js.Re.test_(passport.hcl)
   },
   // validate ecl
-  (.passport) => {
+  (passport) => {
     eyecolors
       ->Belt.Array.some(color => passport.ecl == color)
   },
   // validate pid
-  (.passport) => {
+  (passport) => {
     %re("/^[0-9]{9}$/")->Js.Re.test_(passport.pid)
   }
 ]
@@ -127,9 +127,9 @@ let validatePassport = passportResult => {
   switch (passportResult) {
     | Belt.Result.Ok(passport) => {
       passportRules
-        ->Belt.Array.every(rule => rule(.passport))
+        ->Belt.Array.every(rule => rule(passport))
     }
-    | _ => false
+    | Belt.Result.Error(_) => false
   }
 }
 
@@ -141,7 +141,7 @@ let countPassport = passports => {
     ->Belt.Array.keepMap(passportResult => {
       switch (passportResult) {
         | Belt.Result.Ok(passport) => Some(passport)
-        | _ => None
+        | Belt.Result.Error(_) => None
       }
     })
     ->Belt.Array.length
