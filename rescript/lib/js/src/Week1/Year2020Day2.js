@@ -5,56 +5,34 @@ var Fs = require("fs");
 var Process = require("process");
 var Belt_Int = require("rescript/lib/js/belt_Int.js");
 var Belt_Array = require("rescript/lib/js/belt_Array.js");
-var Belt_Option = require("rescript/lib/js/belt_Option.js");
-var Caml_option = require("rescript/lib/js/caml_option.js");
 
 function parsePasswordRule(str) {
-  var parts = str.split(" ");
-  var rangeInt = Belt_Option.mapWithDefault(Belt_Array.get(parts, 0), [], (function (range) {
-          return Belt_Array.map(range.split("-"), Belt_Int.fromString);
-        }));
-  var required = Belt_Option.mapWithDefault(Belt_Array.get(parts, 1), undefined, (function (rule) {
-          return Belt_Array.get(rule.split(":"), 0);
-        }));
-  var password = Belt_Array.get(parts, 2);
-  var min = Belt_Array.get(rangeInt, 0);
-  var max = Belt_Array.get(rangeInt, 1);
+  var match = str.split(" ");
+  if (match.length !== 3) {
+    return ;
+  }
+  var rangeParts = match[0];
+  var requiredParts = match[1];
+  var password = match[2];
+  var match$1 = Belt_Array.map(rangeParts.split("-"), Belt_Int.fromString);
+  var match$2 = Belt_Array.get(requiredParts.split(":"), 0);
+  if (match$1.length !== 2) {
+    return ;
+  }
+  var min = match$1[0];
   if (min === undefined) {
+    return ;
+  }
+  var max = match$1[1];
+  if (max !== undefined && match$2 !== undefined) {
     return {
-            TAG: /* Error */1,
-            _0: "Invalid password rule"
+            min: min,
+            max: max,
+            required: match$2,
+            password: password
           };
   }
-  var min$1 = Caml_option.valFromOption(min);
-  if (min$1 === undefined) {
-    return {
-            TAG: /* Error */1,
-            _0: "Invalid password rule"
-          };
-  }
-  if (max === undefined) {
-    return {
-            TAG: /* Error */1,
-            _0: "Invalid password rule"
-          };
-  }
-  var max$1 = Caml_option.valFromOption(max);
-  if (max$1 !== undefined && required !== undefined && password !== undefined) {
-    return {
-            TAG: /* Ok */0,
-            _0: {
-              min: min$1,
-              max: max$1,
-              required: required,
-              password: password
-            }
-          };
-  } else {
-    return {
-            TAG: /* Error */1,
-            _0: "Invalid password rule"
-          };
-  }
+  
 }
 
 function validatePasswordOldRule(rule) {
@@ -83,12 +61,7 @@ function validatePasswordNewRule(rule) {
 
 var input = Fs.readFileSync(Process.cwd() + "/rescript/input/Week1/Year2020Day2.input.txt", "utf8");
 
-var passwordRules = Belt_Array.keepMap(Belt_Array.map(input.split("\n"), parsePasswordRule), (function (result) {
-        if (result.TAG === /* Ok */0) {
-          return result._0;
-        }
-        
-      }));
+var passwordRules = Belt_Array.keepMap(input.split("\n"), parsePasswordRule);
 
 var stepOneAnswer = Belt_Array.keep(passwordRules, validatePasswordOldRule).length;
 

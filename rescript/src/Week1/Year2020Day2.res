@@ -5,33 +5,23 @@ type passwordRule = {
   password: string
 }
 
-let parsePasswordRule = (str) => {
-  let parts = str->Js.String2.split(" ")
-  let rangeInt = parts
-    ->Belt.Array.get(0)
-    ->Belt.Option.mapWithDefault([], range => {
-      range
-        ->Js.String2.split("-")
-        ->Belt.Array.map(Belt.Int.fromString)
-    })
-  let required = parts
-    ->Belt.Array.get(1)
-    ->Belt.Option.mapWithDefault(None, rule => {
-      rule
-        ->Js.String2.split(":")
-        ->Belt.Array.get(0)
-    })
-  let password = parts->Belt.Array.get(2)
-  let min = rangeInt->Belt.Array.get(0)
-  let max = rangeInt->Belt.Array.get(1)
-  switch (min, max, required, password) {
-    | (Some(Some(min)), Some(Some(max)), Some(required), Some(password)) => Belt.Result.Ok({
-      min,
-      max,
-      required,
-      password
-    })
-    | _ => Belt.Result.Error("Invalid password rule") 
+let parsePasswordRule = (str): option<passwordRule> => {
+  switch str->Js.String2.split(" ") {
+    | [rangeParts, requiredParts, password] => {
+      switch (
+        rangeParts->Js.String2.split("-")->Belt.Array.map(Belt.Int.fromString),
+        requiredParts->Js.String2.split(":")->Belt.Array.get(0)
+      ) {
+        | ([Some(min), Some(max)], Some(required)) => Some({
+          min,
+          max,
+          required,
+          password
+        })
+        | _ => None
+      }
+    }
+    | _ => None
   }
 }
 
@@ -56,13 +46,7 @@ let validatePasswordNewRule = (rule) => {
 let input = Node.Fs.readFileAsUtf8Sync(Node.Process.cwd() ++ "/rescript/input/Week1/Year2020Day2.input.txt")
 let passwordRules = input
   ->Js.String2.split("\n")
-  ->Belt.Array.map(parsePasswordRule)
-  ->Belt.Array.keepMap(result => {
-    switch result {
-      | Belt.Result.Ok(rule) => Some(rule)
-      | _ => None
-    }
-  })
+  ->Belt.Array.keepMap(parsePasswordRule)
 
 let stepOneAnswer = passwordRules
   ->Belt.Array.keep(validatePasswordOldRule)
