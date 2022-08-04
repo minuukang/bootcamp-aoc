@@ -56,19 +56,13 @@ let parseSeat = (seatStr: string) => {
   let seatSpecs = seatStr->Js.String2.split("")
   let row = seatSpecs
     ->Belt.Array.keepMap(spec => switch spec->seatTypeMapFromJs {
-      | Some(t) => switch (t) {
-        | #row => spec->seatDirectionMapFromJs
-        | _ => None
-      }
+      | Some(#row) => spec->seatDirectionMapFromJs
       | _ => None
     })
     ->parseRow
   let column = seatSpecs
     ->Belt.Array.keepMap(spec => switch spec->seatTypeMapFromJs {
-      | Some(t) => switch (t) {
-        | #column => spec->seatDirectionMapFromJs
-        | _ => None
-      }
+      | Some(#column) => spec->seatDirectionMapFromJs
       | _ => None
     })
     ->parseRow

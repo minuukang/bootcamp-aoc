@@ -73,15 +73,15 @@ function getSeatId(row, column) {
 function parseSeat(seatStr) {
   var seatSpecs = seatStr.split("");
   var row = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (spec) {
-              var t = seatTypeMapFromJs(spec);
-              if (t === "row") {
+              var match = seatTypeMapFromJs(spec);
+              if (match === "row") {
                 return seatDirectionMapFromJs(spec);
               }
               
             })));
   var column = createSeatParser(0, 127, Belt_Array.keepMap(seatSpecs, (function (spec) {
-              var t = seatTypeMapFromJs(spec);
-              if (t === "column") {
+              var match = seatTypeMapFromJs(spec);
+              if (match === "column") {
                 return seatDirectionMapFromJs(spec);
               }
               
