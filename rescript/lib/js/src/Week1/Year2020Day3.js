@@ -2,10 +2,76 @@
 'use strict';
 
 var Fs = require("fs");
+var Process = require("process");
+var Belt_Array = require("rescript/lib/js/belt_Array.js");
+var Caml_array = require("rescript/lib/js/caml_array.js");
+var Caml_int32 = require("rescript/lib/js/caml_int32.js");
 
-var input = Fs.readFileSync("input/Week1/Year2020Day3.sample.txt", "utf8");
+var tree = "#";
 
-console.log(input);
+function countTreeByDirection(map, x, y) {
+  var yPositions = Belt_Array.rangeBy(y, map.length - 1 | 0, y);
+  var positions = Belt_Array.zip(Belt_Array.makeBy(yPositions.length, (function (i) {
+              return Caml_int32.mod_(Math.imul(i + 1 | 0, x), Caml_array.get(map, 0).length);
+            })), yPositions);
+  return Belt_Array.reduce(Belt_Array.map(positions, (function (param) {
+                    if (Caml_array.get(Caml_array.get(map, param[1]), param[0]) === tree) {
+                      return 1;
+                    } else {
+                      return 0;
+                    }
+                  })), 0, (function (result, num) {
+                return result + num | 0;
+              }));
+}
 
+var input = Fs.readFileSync(Process.cwd() + "/rescript/input/Week1/Year2020Day3.input.txt", "utf8");
+
+var map = Belt_Array.map(input.trim().split("\n"), (function (line) {
+        return line.split("");
+      }));
+
+var stepOneAnswer = countTreeByDirection(map, 3, 1);
+
+var stepTwoDirections = [
+  {
+    x: 1,
+    y: 1
+  },
+  {
+    x: 3,
+    y: 1
+  },
+  {
+    x: 5,
+    y: 1
+  },
+  {
+    x: 7,
+    y: 1
+  },
+  {
+    x: 1,
+    y: 2
+  }
+];
+
+var stepTwoAnswer = Belt_Array.reduce(Belt_Array.map(stepTwoDirections, (function (param) {
+            return countTreeByDirection(map, param.x, param.y);
+          })), 1.0, (function (result, count) {
+        return result * count;
+      }));
+
+console.log({
+      stepOneAnswer: stepOneAnswer,
+      stepTwoAnswer: stepTwoAnswer
+    });
+
+exports.tree = tree;
+exports.countTreeByDirection = countTreeByDirection;
 exports.input = input;
+exports.map = map;
+exports.stepOneAnswer = stepOneAnswer;
+exports.stepTwoDirections = stepTwoDirections;
+exports.stepTwoAnswer = stepTwoAnswer;
 /* input Not a pure module */
